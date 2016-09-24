@@ -1,8 +1,9 @@
 # Philly-311-Dashboard
 Dashboard for Philly 311 reporting created through Code for Philly hackathon
 
-Goals so far:
-Dashboard: 
+Goals so far, Dashboard:
+
+
 1. repeat request clusters    
 2. top 10 issues by week/dept    
 3. major events alert.    

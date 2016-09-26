@@ -1,0 +1,1 @@
+web: gunicorn dash311:app --log-file -

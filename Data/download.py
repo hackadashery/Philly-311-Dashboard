@@ -16,6 +16,7 @@ tdlist = ['expected_datetime','requested_datetime','updated_datetime']
 #raw_data = pd.read_json(query, convert_dates= tdlist)
 
 os.chdir(os.path.dirname(sys.argv[0]))
+logging.debug('WorkDir',os.getcwd())
 wget.download(url)
 
 

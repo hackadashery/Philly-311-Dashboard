@@ -10,7 +10,12 @@ import urllib
 url = 'https://data.phila.gov/api/views/4t9v-rppq/rows.csv?accessType=DOWNLOAD'
 logging.basicConfig(level=logging.DEBUG)
 
-query = ("https://data.phila.gov/resource/4t9v-rppq.json")
+#query = ("https://data.phila.gov/resource/4t9v-rppq.json")
+
+query = ("https://data.phila.gov/resource/4t9v-rppq.json?$where=requested_datetime%20between%20%272016-09-01T00:00:00%27%20and%20%272016-10-01T00:00:00%27")
+#raw_data = pd.read_json(query, convert_dates=['expected_datetime','requested_datetime','updated_datetime'])
+
+#query = "4t9v-rppq.json"
 tdlist = ['expected_datetime','requested_datetime','updated_datetime']
 
 raw_data = pd.read_json(query, convert_dates= tdlist)

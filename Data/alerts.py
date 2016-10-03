@@ -43,9 +43,7 @@ class DateTimeEncoder(json.JSONEncoder):
 
 today = datetime.datetime.today()
 today = today.replace(second=0, microsecond=0)
-print (DateTimeEncoder().encode(today))
 query = ('https://data.phila.gov/resource/4t9v-rppq.json?$where=requested_datetime%20between%20%27'+DateTimeEncoder().encode(today-timedelta(days=interval)).strip('"')+'%27%20and%20%27'+DateTimeEncoder().encode(today).strip('"')+'%27')
-print(query)
 tdlist = ['expected_datetime','requested_datetime','updated_datetime']
 
 df = pd.read_json(query, convert_dates= tdlist)
@@ -87,7 +85,7 @@ labels = db.labels_
 # Number of clusters in labels, ignoring noise if present.
 n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
 
-print(n_clusters_)
+print("Clusters found",n_clusters_)
 
 lbls=pd.DataFrame({'nclus':labels},index=ind)
 lbls.index.name='service_request_id'

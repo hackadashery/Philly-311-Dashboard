@@ -11,6 +11,8 @@ from datetime import datetime,timedelta
 import urllib
 import calendar
 import time
+import datetime
+import pyproj as proj
 
 from bokeh.plotting import *
 from bokeh.models import HoverTool
@@ -22,12 +24,38 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import normalize
 
-interval=10 #First argument is a number of days to look for alerts. 30 default
+
+def upload_s3(string):
+    '''
+    Uploading string in JSON format to s3 bucket
+    '''
+    import boto
+
+    AWS_ACCESS_KEY_ID = 'AKIAIROCAMP2AJ7ZOX2Q'
+    AWS_SECRET_ACCESS_KEY = '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'
+
+    bucket_name = '311clusters'
+
+    conn = boto.connect_s3(AWS_ACCESS_KEY_ID,
+                           AWS_SECRET_ACCESS_KEY)
+
+    bucket = conn.get_bucket('311clusters')
+
+    from boto.s3.key import Key
+    k = Key(bucket)
+    k.key = 'clusters.json'
+
+    import sys
+    def percent_cb(complete, total):
+        sys.stdout.write('.')
+        sys.stdout.flush()
+    #bucket.delete_key(k)
+    k.set_contents_from_string(string,
+                               cb=percent_cb, num_cb=10)
+
+interval=7 #First argument is a number of days to look for alerts. 30 default
 if len(sys.argv)>1:
     interval=int(sys.argv[1])
-
-
-import datetime
 
 class DateTimeEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -41,43 +69,36 @@ class DateTimeEncoder(json.JSONEncoder):
             return super(DateTimeEncoder, self).default(obj)
 
 
+#Request data from server
 today = datetime.datetime.today()
 today = today.replace(second=0, microsecond=0)
 query = ('https://data.phila.gov/resource/4t9v-rppq.json?$where=requested_datetime%20between%20%27'+DateTimeEncoder().encode(today-timedelta(days=interval)).strip('"')+'%27%20and%20%27'+DateTimeEncoder().encode(today).strip('"')+'%27')
 tdlist = ['expected_datetime','requested_datetime','updated_datetime']
 
+
+#Turn coordinates into 2 dimensional array
+
 df = pd.read_json(query, convert_dates= tdlist)
 df=df.set_index(['service_request_id'])
-
-
 coord=df[['lat','lon','requested_datetime']].dropna()
-
-
 coord=coord.reset_index()
 ind=np.asarray(coord['service_request_id'])
 del coord['service_request_id']
-
 coord=np.asarray(coord)
-#coord[:10]
-
-import pyproj as proj
 
 # setup your projections
 crs_wgs = proj.Proj(init='epsg:4326') # assuming you're using WGS84 geographic
-crs_bng = proj.Proj(init='epsg:26917') # use a locally appropriate projected CRS
-
+crs_bng = proj.Proj(init='epsg:26917') # use a locally appropriate projected CRS - 26971 Greater Philly area
 # then cast your geographic coordinate pair to the projected system
 coord[:,0],coord[:,1]=proj.transform(crs_wgs, crs_bng, coord[:,1], coord[:,0])
-
-
 coord[:,0] = (coord[:,0] - coord[:,0].min()) / (coord[:,0].max() - coord[:,0].min())
 coord[:,1] = (coord[:,1] - coord[:,1].min()) / (coord[:,1].max() - coord[:,1].min())
-
 scl=MinMaxScaler()
 coord[:,2]=scl.fit_transform([time.mktime(z.timetuple()) for z in coord[:,2]])
-
 X=coord#[:,:2]
-db = DBSCAN(eps=0.004, min_samples=10).fit(X)
+
+#Apply DBSCAN algorithm
+db = DBSCAN(eps=0.005, min_samples=8).fit(X)
 core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
 core_samples_mask[db.core_sample_indices_] = True
 labels = db.labels_
@@ -99,10 +120,16 @@ from IPython.display import display, HTML
 #    display(clasf[clasf.nclus==i])
 clasf.sort_values('nclus',inplace=True)
 
-clasf.to_csv('clusters_utf.csv',encoding='utf-8')
+json = clasf.to_json()
+upload_s3(json)
 
-import codecs
-tstf = codecs.open('clusters_utf.csv', 'r', encoding='ascii', errors='ignore')
-tst=pd.read_csv(tstf,index_col='service_request_id')
-tst.to_html('clusters.html')
-tstf.close()
+# clasf.to_csv('clusters_utf.csv',encoding='utf-8')
+#
+# import codecs
+# tstf = codecs.open('clusters_utf.csv', 'r', encoding='ascii', errors='ignore')
+# tst=pd.read_csv(tstf,index_col='service_request_id')
+# tst.to_html('clusters.html')
+# json = tst.to_json()
+# upload_s3(json)
+# # print(json)
+# tstf.close()

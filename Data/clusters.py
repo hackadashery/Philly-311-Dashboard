@@ -31,8 +31,8 @@ def upload_s3(string):
     '''
     import boto
 
-    AWS_ACCESS_KEY_ID = 'AKIAIROCAMP2AJ7ZOX2Q'
-    AWS_SECRET_ACCESS_KEY = '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'
+    AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
+    AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
 
     bucket_name = '311clusters'
 
